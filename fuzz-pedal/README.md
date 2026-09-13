@@ -28,3 +28,13 @@ Open [http://localhost:8765](http://localhost:8765).
 - Vanilla HTML / CSS / ES modules
 - WaveShaper fuzz with asymmetric germanium-style transfer curve
 - No build step
+
+## Native LV2 plugin (C)
+
+Same fuzz model as a real DAW plugin — see [`plugin/`](plugin/):
+
+```bash
+cd plugin
+make && make install   # → ~/.lv2/volt-fuzz.lv2
+make test              # offline DSP smoke test
+```
