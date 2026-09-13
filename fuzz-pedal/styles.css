@@ -253,6 +253,7 @@ body {
     0 6px 14px rgba(0, 0, 0, 0.5),
     inset 0 2px 3px rgba(255, 255, 255, 0.08);
   transition: transform 0.15s ease;
+  touch-action: none;
 }
 
 .knob:active .knob-face {
@@ -354,6 +355,8 @@ body {
 }
 
 .controls {
+  position: relative;
+  z-index: 2;
   width: min(100%, 34rem);
   text-align: center;
   animation: rise 1.05s cubic-bezier(0.22, 1, 0.36, 1) 0.22s both;
