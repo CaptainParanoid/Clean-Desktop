@@ -168,6 +168,12 @@ export class VoltFuzz {
 
   async _disconnectSource() {
     this.stopDemo();
+    if (this._mediaStream) {
+      for (const track of this._mediaStream.getTracks()) {
+        track.stop();
+      }
+      this._mediaStream = null;
+    }
     if (this._source) {
       try {
         this._source.disconnect();
@@ -185,20 +191,36 @@ export class VoltFuzz {
     }
   }
 
-  async useMicrophone() {
+  async listAudioInputs() {
+    if (!navigator.mediaDevices?.enumerateDevices) {
+      return [];
+    }
+    // Labels are empty until permission has been granted once.
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter((d) => d.kind === "audioinput");
+  }
+
+  async useMicrophone(deviceId) {
     await this.ensureContext();
     await this._disconnectSource();
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: {
-        echoCancellation: false,
-        noiseSuppression: false,
-        autoGainControl: false,
-      },
-    });
+
+    const audio = {
+      echoCancellation: false,
+      noiseSuppression: false,
+      autoGainControl: false,
+      // Prefer the instrument channel; hosts still mix to mono for us.
+      channelCount: { ideal: 1 },
+    };
+    if (deviceId) {
+      audio.deviceId = { exact: deviceId };
+    }
+
+    const stream = await navigator.mediaDevices.getUserMedia({ audio });
+    this._mediaStream = stream;
     const src = this.ctx.createMediaStreamSource(stream);
     src.connect(this.inputGain);
     this._source = src;
-    return true;
+    return stream;
   }
 
   async loadFile(file) {

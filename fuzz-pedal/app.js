@@ -9,9 +9,12 @@ const engageBtn = document.getElementById("engageBtn");
 const demoBtn = document.getElementById("demoBtn");
 const micBtn = document.getElementById("micBtn");
 const fileInput = document.getElementById("fileInput");
+const inputDevice = document.getElementById("inputDevice");
 const statusLed = document.getElementById("statusLed");
 const statusLabel = document.getElementById("statusLabel");
 const hint = document.getElementById("hint");
+
+let liveInputOn = false;
 
 function setHint(text, isError = false) {
   hint.textContent = text;
@@ -23,7 +26,6 @@ function syncKnob(input) {
   const el = input.closest(".knob");
   const pointer = el.querySelector(".knob-pointer");
   const readout = document.querySelector(`.knob-value[data-for="${input.id}"]`);
-  // Map 0–100 → -140deg … +140deg
   const deg = -140 + (value / 100) * 280;
   pointer.style.transform = `rotate(${deg}deg)`;
   if (readout) readout.textContent = String(value);
@@ -51,12 +53,71 @@ async function bootAudio() {
   await pedal.ensureContext();
 }
 
+function selectedDeviceId() {
+  return inputDevice.value || undefined;
+}
+
+async function refreshInputDevices(preferredId) {
+  const devices = await pedal.listAudioInputs();
+  const previous = preferredId ?? inputDevice.value;
+  inputDevice.innerHTML = "";
+
+  const fallback = document.createElement("option");
+  fallback.value = "";
+  fallback.textContent = devices.length
+    ? "Default system input"
+    : "Click Enable to grant mic access…";
+  inputDevice.appendChild(fallback);
+
+  for (const device of devices) {
+    const opt = document.createElement("option");
+    opt.value = device.deviceId;
+    opt.textContent = device.label || `Input ${device.deviceId.slice(0, 8)}`;
+    inputDevice.appendChild(opt);
+  }
+
+  if (previous && [...inputDevice.options].some((o) => o.value === previous)) {
+    inputDevice.value = previous;
+  } else {
+    // Prefer anything that looks like an interface over FaceTime/built-in mics.
+    const ranked = devices.find((d) => {
+      const label = (d.label || "").toLowerCase();
+      return (
+        label &&
+        !label.includes("facetime") &&
+        !label.includes("built-in") &&
+        !label.includes("macbook")
+      );
+    });
+    if (ranked) inputDevice.value = ranked.deviceId;
+  }
+}
+
+async function enableGuitarInput() {
+  await bootAudio();
+  if (engageBtn.getAttribute("aria-pressed") !== "true") {
+    setEngaged(true);
+  }
+
+  const stream = await pedal.useMicrophone(selectedDeviceId());
+  liveInputOn = true;
+  micBtn.setAttribute("aria-pressed", "true");
+  micBtn.textContent = "Guitar input on";
+
+  await refreshInputDevices(selectedDeviceId());
+
+  const track = stream.getAudioTracks()[0];
+  const label = track?.label || "selected input";
+  setHint(
+    `Listening on “${label}”. Play your guitar — headphones/monitors on the interface are ideal.`
+  );
+}
+
 for (const input of [fuzzInput, toneInput, levelInput]) {
   applyControl(input);
   input.addEventListener("input", () => applyControl(input));
 
   const face = input.closest(".knob").querySelector(".knob-face");
-  // Drag-to-turn on the knob face
   let dragging = false;
   let startY = 0;
   let startVal = 0;
@@ -90,7 +151,7 @@ engageBtn.addEventListener("click", async () => {
     const next = engageBtn.getAttribute("aria-pressed") !== "true";
     setEngaged(next);
     if (next) {
-      setHint("Pedal engaged. Play the demo riff, use a mic, or load audio.");
+      setHint("Pedal engaged. Pick your interface, then Enable guitar input.");
     } else {
       setHint("Bypassed — clean signal path.");
     }
@@ -102,6 +163,9 @@ engageBtn.addEventListener("click", async () => {
 demoBtn.addEventListener("click", async () => {
   if (demoBtn.disabled) return;
   try {
+    liveInputOn = false;
+    micBtn.setAttribute("aria-pressed", "false");
+    micBtn.textContent = "Enable guitar input";
     await bootAudio();
     if (engageBtn.getAttribute("aria-pressed") !== "true") {
       setEngaged(true);
@@ -127,17 +191,24 @@ demoBtn.addEventListener("click", async () => {
 
 micBtn.addEventListener("click", async () => {
   try {
-    await bootAudio();
-    if (engageBtn.getAttribute("aria-pressed") !== "true") {
-      setEngaged(true);
-    }
-    await pedal.useMicrophone();
-    setHint("Microphone live — play into VOLT. Watch levels; fuzz is loud.");
+    await enableGuitarInput();
   } catch (err) {
+    liveInputOn = false;
+    micBtn.setAttribute("aria-pressed", "false");
+    micBtn.textContent = "Enable guitar input";
     setHint(
-      `Mic unavailable (${err.message}). Try the demo riff or load a file.`,
+      `Input unavailable (${err.message}). In the browser site settings, allow Microphone and choose your audio interface.`,
       true
     );
+  }
+});
+
+inputDevice.addEventListener("change", async () => {
+  if (!liveInputOn) return;
+  try {
+    await enableGuitarInput();
+  } catch (err) {
+    setHint(`Could not switch input: ${err.message}`, true);
   }
 });
 
@@ -145,6 +216,9 @@ fileInput.addEventListener("change", async () => {
   const file = fileInput.files?.[0];
   if (!file) return;
   try {
+    liveInputOn = false;
+    micBtn.setAttribute("aria-pressed", "false");
+    micBtn.textContent = "Enable guitar input";
     await bootAudio();
     if (engageBtn.getAttribute("aria-pressed") !== "true") {
       setEngaged(true);
@@ -155,3 +229,11 @@ fileInput.addEventListener("change", async () => {
     setHint(`Could not load audio: ${err.message}`, true);
   }
 });
+
+if (navigator.mediaDevices?.addEventListener) {
+  navigator.mediaDevices.addEventListener("devicechange", () => {
+    refreshInputDevices(selectedDeviceId()).catch(() => {});
+  });
+}
+
+refreshInputDevices().catch(() => {});

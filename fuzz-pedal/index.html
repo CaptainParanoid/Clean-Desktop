@@ -101,12 +101,20 @@
       </section>
 
       <section class="controls" aria-label="Input source">
+        <div class="device-row">
+          <label class="device-label" for="inputDevice">
+            Guitar / interface input
+            <select id="inputDevice" class="device-select">
+              <option value="">Default system input</option>
+            </select>
+          </label>
+        </div>
         <div class="control-group">
           <button type="button" class="btn btn-primary" id="demoBtn">
             Play demo riff
           </button>
           <button type="button" class="btn" id="micBtn">
-            Use microphone
+            Enable guitar input
           </button>
           <label class="btn file-btn">
             Load audio
@@ -114,7 +122,7 @@
           </label>
         </div>
         <p class="hint" id="hint">
-          Hit engage, then play the demo riff — or plug in a mic / file.
+          Plug guitar → interface → pick that device below → Enable guitar input → Engage.
         </p>
       </section>
     </main>
