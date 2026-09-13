@@ -1,0 +1,3 @@
+volt-fuzz.lv2/
+*.o
+test_offline
