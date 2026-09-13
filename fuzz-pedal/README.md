@@ -11,17 +11,28 @@ python3 -m http.server 8765
 
 Open [http://localhost:8765](http://localhost:8765).
 
-## Controls
+## Guitar + audio interface (browser)
 
-| Control | What it does |
-|--------|----------------|
-| **Fuzz** | Drive / asymmetric soft-clip amount |
-| **Tone** | Low-pass + presence shelf |
-| **Level** | Wet output gain |
-| **Engage** | Footswitch bypass ↔ effect |
-| **Play demo riff** | Synth power-chord riff through the pedal |
-| **Use microphone** | Live input (needs permission) |
-| **Load audio** | Loop a local audio file through the chain |
+Browsers treat your interface as a **microphone**. The built-in MacBook mic is often the default — pick the interface explicitly.
+
+1. Guitar → interface input (set gain so the interface meter moves, no clip)
+2. Headphones / monitors on the interface (turn **direct monitoring off** or you’ll hear dry + wet)
+3. Serve the page and open it in **Chrome** (best getUserMedia support):
+   ```bash
+   cd fuzz-pedal && python3 -m http.server 8765
+   ```
+   Open http://localhost:8765
+4. When prompted, **Allow** microphone access
+5. In the **Guitar / interface input** dropdown, choose your interface (e.g. Scarlett, Zoom, Apollo) — not “MacBook Pro Microphone” / FaceTime
+6. Click **Enable guitar input**, then **Engage**, then play
+
+If the dropdown only shows the laptop mic:
+- Chrome → site padlock → Site settings → Microphone → allow, and select the interface there too
+- macOS **System Settings → Sound → Input** → select the interface
+- Unplug/replug the interface, then refresh the page
+
+Expect some latency — this is a browser demo, not a replacement for the LV2 plugin in a DAW.
+
 
 ## Stack
 
