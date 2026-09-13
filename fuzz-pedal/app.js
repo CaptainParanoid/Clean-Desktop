@@ -100,21 +100,26 @@ engageBtn.addEventListener("click", async () => {
 });
 
 demoBtn.addEventListener("click", async () => {
+  if (demoBtn.disabled) return;
   try {
     await bootAudio();
     if (engageBtn.getAttribute("aria-pressed") !== "true") {
       setEngaged(true);
     }
+    demoBtn.disabled = true;
     demoBtn.setAttribute("aria-pressed", "true");
     demoBtn.textContent = "Playing…";
     setHint("Demo riff running through VOLT fuzz.");
     const ms = await pedal.playDemoRiff();
     setTimeout(() => {
+      demoBtn.disabled = false;
       demoBtn.setAttribute("aria-pressed", "false");
       demoBtn.textContent = "Play demo riff";
       setHint("Demo finished. Tweak knobs and run it again.");
     }, ms + 50);
   } catch (err) {
+    demoBtn.disabled = false;
+    demoBtn.setAttribute("aria-pressed", "false");
     setHint(`Demo failed: ${err.message}`, true);
     demoBtn.textContent = "Play demo riff";
   }

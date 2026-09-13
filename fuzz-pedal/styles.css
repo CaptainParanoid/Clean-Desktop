@@ -401,9 +401,12 @@ body {
   background: linear-gradient(135deg, var(--copper-hot), var(--copper));
 }
 
-.btn-primary[aria-pressed="true"] {
+.btn-primary[aria-pressed="true"],
+.btn-primary:disabled {
   background: linear-gradient(135deg, #6a9a4a, #4a7a32);
   color: #0e1608;
+  cursor: wait;
+  opacity: 0.92;
 }
 
 .file-btn {
